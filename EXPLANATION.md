@@ -6,12 +6,6 @@ The OAuth2 token refresh logic in `HttpClient.request()` failed to detect when `
 
 ## Why did it happen?
 
-The conditional logic used AND (`&&`) instead of OR (`||`) when checking token validity:
-
-```typescript
-if (!this.oauth2Token || (this.oauth2Token instanceof OAuth2Token && this.oauth2Token.expired))
-```
-
 This condition only refreshed tokens when:
 - Token was falsy (null/undefined), OR
 - Token was an OAuth2Token instance AND expired
@@ -33,6 +27,23 @@ Now the token refreshes when:
 
 This ensures all invalid token states trigger a refresh.
 
-## One uncovered edge case
+## Test Coverage
 
-**Concurrent token refresh requests**: If multiple API requests are made simultaneously while the token is invalid, each request will independently call `refreshOAuth2()`, potentially causing race conditions or unnecessary refresh calls. A proper implementation would need a mutex or promise-based locking mechanism to ensure only one refresh happens at a time.
+The test suite includes:
+1. Valid token reuse without refresh
+2. Token refresh when token is null
+3. Token refresh when token is a plain object
+4. Token refresh when token is expired
+5. **Concurrent token refresh race condition demonstration**
+
+## Concurrent Token Refresh Edge Case
+
+**Test Added**: `concurrent requests with invalid token lack synchronization mechanism`
+
+This test demonstrates a race condition vulnerability: if multiple API requests are made simultaneously while the token is invalid (in an async environment), each request would independently call `refreshOAuth2()` because there's no locking mechanism.
+
+**Current behavior**: The synchronous implementation means the first request refreshes the token, and subsequent requests reuse it.
+
+**Real async scenario**: Multiple requests checking the token state simultaneously would all see an invalid token and trigger separate refresh calls.
+
+**Proper solution**: A mutex or promise-based locking mechanism to ensure only one refresh happens at a time, with other requests waiting for the shared refresh to complete.
