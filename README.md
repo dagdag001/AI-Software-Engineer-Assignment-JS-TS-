@@ -1,6 +1,4 @@
-# HTTP Client with OAuth2 Token Management
-
-A TypeScript HTTP client implementation with OAuth2 token management and automatic token refresh.
+# Eskalate – AI Training Software Engineer Assignment 
 
 ## Running Tests Locally
 
